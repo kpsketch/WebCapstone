@@ -1,23 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WebCapstone - Kids Learning</title>
+  <title>WebCapstone - Kids Learning</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<h1>Welcome to WebCapstone</h1>
+<div class="home-container">
 
-<p>This is my Kids Learning Web App project.</p>
+  <div class="banner">
+    <img src="assets/banner.png" alt="Welcome Banner">
+    
+  </div>
 
-<p>Testing GitHub push</p>
+  <div class="home-grid">
 
-<ul>
-    <li>ABC Section</li>
-    <li>Numbers Section</li>
-    <li>Colors Section</li>
-    <li>Shapes Section</li>
-    <li>Animals Section</li>
-</ul>
+    <a href="pages/abc.php" class="home-card">
+      <img src="assets/abc.png" alt="ABC">
+      <span>ABC</span>
+    </a>
+
+    <a href="pages/numbers.php" class="home-card">
+      <img src="assets/numbers.png" alt="Numbers">
+      <span>Numbers</span>
+    </a>
+
+    <a href="pages/colors.php" class="home-card">
+      <img src="assets/colors.png" alt="Colors">
+      <span>Colors</span>
+    </a>
+
+    <a href="pages/shapes.php" class="home-card">
+      <img src="assets/shapes.png" alt="Shapes">
+      <span>Shapes</span>
+    </a>
+
+    <a href="pages/animals.php" class="home-card">
+      <img src="assets/animals.png" alt="Animals">
+      <span>Animals</span>
+    </a>
+
+  </div>
+
+</div>
 
 </body>
 </html>
