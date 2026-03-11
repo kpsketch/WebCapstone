@@ -6,69 +6,70 @@
 </head>
 <body>
 
-<h1>Learn ABC (A–Z)</h1>
-<p>Click any image to hear the sound.</p>
+<div class="page-panel">
 
-<!-- POPUP OVERLAY -->
-<div id="popupOverlay" class="popup-overlay" onclick="closePopup()">
-  <div class="popup-box" onclick="event.stopPropagation()">
-    <img id="popupImg" src="" alt="Popup Image">
-    <p id="popupText"></p>
+  <h1 class="page-title">Learn ABC (A–Z)</h1>
+  <p class="page-subtitle">Click any letter to see it bigger and hear the sound.</p>
+
+  <div class="grid">
+    <?php
+      for ($i = 97; $i <= 122; $i++) {
+        $letter = chr($i);
+        echo "
+          <div class='card' onclick=\"showItem('$letter')\">
+            <img src='../assets/images/$letter.png' alt='$letter'>
+            <div class='label'>".strtoupper($letter)."</div>
+          </div>
+        ";
+      }
+    ?>
   </div>
+
+  <!-- POPUP -->
+  <div id="popupOverlay" class="popup-overlay" onclick="closePopup()">
+    <div class="popup-box" onclick="event.stopPropagation()">
+      <img id="popupImg" src="" alt="Popup">
+      <div id="popupText" class="popup-text"></div>
+    </div>
+  </div>
+
+  <audio id="sound" preload="auto"></audio>
+
+  <p><a class="back-link" href="../index.php">← Back to Home</a></p>
+
 </div>
-
-<!-- GRID -->
-<div class="grid">
-  <?php
-    for ($i = 97; $i <= 122; $i++) {
-      $letter = chr($i);
-      echo "
-        <div class='card' onclick=\"showPopup('$letter')\">
-          <img src='../assets/images/$letter.png' alt='$letter'>
-          <div class='letter-label'>".strtoupper($letter)."</div>
-        </div>
-      ";
-    }
-  ?>
-</div>
-
-<audio id="sound"></audio>
-
-<p><a href="../index.php">← Back to Home</a></p>
 
 <script>
-function showPopup(letter) {
+function showItem(letter) {
   const overlay = document.getElementById("popupOverlay");
   const popupImg = document.getElementById("popupImg");
   const popupText = document.getElementById("popupText");
-  const sound = document.getElementById("sound");
 
-  // set image + text
   popupImg.src = `../assets/images/${letter}.png`;
-  popupText.innerText = letter.toUpperCase();
-
-  // show popup
+  popupText.textContent = letter.toUpperCase();
   overlay.style.display = "flex";
 
-  // play sound
-  sound.src = `../assets/audio/${letter}.wav`;
+  playSound(`../assets/audio/${letter}.wav`, closePopup);
+}
+
+function playSound(src, onEnd) {
+  const sound = document.getElementById("sound");
+  sound.pause();
   sound.currentTime = 0;
-sound.play();
+  sound.onended = null;
 
-sound.play();
+  sound.src = src;
+  sound.load();
+  sound.onended = () => onEnd && onEnd();
 
-  sound.play();
-
-  // auto close when sound ends
-  sound.onended = () => {
-    closePopup();
-  };
+  sound.play().catch(() => {
+    setTimeout(() => onEnd && onEnd(), 600);
+  });
 }
 
 function closePopup() {
   const overlay = document.getElementById("popupOverlay");
   const sound = document.getElementById("sound");
-
   overlay.style.display = "none";
   sound.pause();
   sound.currentTime = 0;

@@ -9,28 +9,22 @@
 <h1 class="page-title">Learn Shapes</h1>
 <p class="page-subtitle">Click any shape to see it bigger and hear the sound.</p>
 
-<?php
-  $shapes = [
-    "arrow","circle","crescent","diamond","go",
-    "heart","hexagon","no","oval","pentagon",
-    "plus","rectangle","square","star","stop",
-    "triangle","yes"
-  ];
-?>
-
 <div class="grid">
-  <?php foreach ($shapes as $s): ?>
-    <div class="card" onclick="showItem('<?php echo $s; ?>','shapes-images','shapes-sounds')">
-      <img src="../assets/shapes-images/<?php echo $s; ?>.png" alt="<?php echo $s; ?>">
-      <div class="label"><?php echo ucfirst($s); ?></div>
-    </div>
-  <?php endforeach; ?>
+  <?php
+    $shapes = ["arrow","circle","crescent","diamond","go","heart","hexagon","no","oval","pentagon","plus","rectangle","square","star","stop","triangle","yes"];
+    foreach ($shapes as $s) {
+      echo "
+        <div class='card' onclick=\"showItem('$s')\">
+          <img src='../assets/shapes-images/$s.png' alt='$s'>
+          <div class='label'>".ucfirst($s)."</div>
+        </div>
+      ";
+    }
+  ?>
 </div>
 
-<!-- POPUP -->
 <div id="popupOverlay" class="popup-overlay" onclick="closePopup()">
   <div class="popup-box" onclick="event.stopPropagation()">
-    <div id="popupLetter" class="popup-letter"></div>
     <img id="popupImg" src="" alt="Shape">
     <div id="popupText" class="popup-text"></div>
   </div>
@@ -41,41 +35,31 @@
 <p><a class="back-link" href="../index.php">← Back to Home</a></p>
 
 <script>
-const overlay = document.getElementById("popupOverlay");
-const popupImg = document.getElementById("popupImg");
-const popupText = document.getElementById("popupText");
-const popupLetter = document.getElementById("popupLetter");
-const sound = document.getElementById("sound");
-
-function cap(word){
-  return word.charAt(0).toUpperCase() + word.slice(1);
-}
-
-function showItem(name, imgFolder, sndFolder) {
-  // popup content
-  popupImg.src = `../assets/${imgFolder}/${name}.png`;
-  popupText.textContent = cap(name);
-  popupLetter.textContent = name.charAt(0).toUpperCase();
+function showItem(name) {
+  const overlay = document.getElementById("popupOverlay");
+  document.getElementById("popupImg").src = `../assets/shapes-images/${name}.png`;
+  document.getElementById("popupText").textContent = name.charAt(0).toUpperCase() + name.slice(1);
   overlay.style.display = "flex";
 
-  // audio: prevent clipped start ✅
+  playSound(`../assets/shapes-sounds/${name}.wav`, closePopup);
+}
+
+function playSound(src, onEnd) {
+  const sound = document.getElementById("sound");
   sound.pause();
   sound.currentTime = 0;
-  sound.onended = closePopup;
-  sound.onerror = () => setTimeout(closePopup, 1000);
+  sound.onended = null;
 
-  sound.src = `../assets/${sndFolder}/${name}.wav`;
+  sound.src = src;
   sound.load();
+  sound.onended = () => onEnd && onEnd();
 
-  sound.oncanplaythrough = () => {
-    sound.oncanplaythrough = null;
-    setTimeout(() => {
-      sound.play().catch(() => setTimeout(closePopup, 1000));
-    }, 80);
-  };
+  sound.play().catch(() => setTimeout(() => onEnd && onEnd(), 600));
 }
 
 function closePopup() {
+  const overlay = document.getElementById("popupOverlay");
+  const sound = document.getElementById("sound");
   overlay.style.display = "none";
   sound.pause();
   sound.currentTime = 0;

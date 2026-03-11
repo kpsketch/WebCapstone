@@ -6,6 +6,9 @@
 </head>
 <body>
 
+<div class="page-panel">
+
+
 <h1 class="page-title">Animal Sounds</h1>
 <p class="page-subtitle">Click any animal to see it bigger and hear the sound.</p>
 
@@ -40,9 +43,11 @@
   </div>
 </div>
 
-<audio id="sound"></audio>
+<audio id="sound" preload="auto"></audio>
 
 <p><a class="back-link" href="../index.php">← Back to Home</a></p>
+
+  </div>
 
 <script>
 function showAnimal(name) {
