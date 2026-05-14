@@ -20,6 +20,7 @@ if (isset($_GET['category'])) {
         $_SESSION['quiz_feedback'] = '';
         $_SESSION['quiz_speak'] = '';
         $_SESSION['quiz_is_correct'] = false;
+        $_SESSION['quiz_result_id'] = null;
 
         $stmt = $conn->prepare("SELECT * FROM quiz_questions WHERE category = ?");
         $stmt->bind_param("s", $category);
@@ -33,6 +34,23 @@ if (isset($_GET['category'])) {
         }
 
         shuffle($_SESSION['quiz_questions']);
+
+        if (isset($_SESSION['user_id'])) {
+            $userId = $_SESSION['user_id'];
+            $score = 0;
+            $totalQuestions = count($_SESSION['quiz_questions']);
+            $questionsAnswered = 0;
+            $status = 'in_progress';
+
+            $insertStmt = $conn->prepare("INSERT INTO quiz_results (user_id, category, score, total_questions, questions_answered, status) VALUES (?, ?, ?, ?, ?, ?)");
+            if ($insertStmt) {
+                $insertStmt->bind_param("isiiis", $userId, $category, $score, $totalQuestions, $questionsAnswered, $status);
+                if ($insertStmt->execute()) {
+                    $_SESSION['quiz_result_id'] = $conn->insert_id;
+                }
+                $insertStmt->close();
+            }
+        }
     }
 } else {
     $category = $_SESSION['quiz_category'] ?? '';
@@ -74,6 +92,23 @@ function buildSpeechText($category, $isCorrect, $question) {
     return $answerText . ", that is correct.";
 }
 
+function updateQuizAttempt($conn, $questionsAnswered, $status) {
+    if (!isset($_SESSION['user_id']) || !isset($_SESSION['quiz_result_id']) || empty($_SESSION['quiz_result_id'])) {
+        return;
+    }
+
+    $resultId = $_SESSION['quiz_result_id'];
+    $score = $_SESSION['quiz_score'];
+    $totalQuestions = count($_SESSION['quiz_questions']);
+
+    $stmt = $conn->prepare("UPDATE quiz_results SET score = ?, total_questions = ?, questions_answered = ?, status = ? WHERE id = ?");
+    if ($stmt) {
+        $stmt->bind_param("iiisi", $score, $totalQuestions, $questionsAnswered, $status, $resultId);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if (isset($_POST['answer']) && $_SESSION['quiz_answered'] === false) {
@@ -93,6 +128,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $_SESSION['quiz_speak'] = buildSpeechText($category, false, $current);
             $_SESSION['quiz_is_correct'] = false;
         }
+
+        // save progress as soon as an answer is given
+        $answeredCount = $_SESSION['quiz_index'] + 1;
+        updateQuizAttempt($conn, $answeredCount, 'in_progress');
     }
 
     if (isset($_POST['try_again'])) {
@@ -104,21 +143,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     if (isset($_POST['next'])) {
-        $_SESSION['quiz_index']++;
+        $nextIndex = $_SESSION['quiz_index'] + 1;
+        $totalQuestions = count($_SESSION['quiz_questions']);
 
-        $_SESSION['quiz_answered'] = false;
-        $_SESSION['quiz_selected'] = '';
-        $_SESSION['quiz_feedback'] = '';
-        $_SESSION['quiz_speak'] = '';
-        $_SESSION['quiz_is_correct'] = false;
+        if ($nextIndex >= $totalQuestions) {
+            // final save before finish
+            updateQuizAttempt($conn, $totalQuestions, 'completed');
 
-        if ($_SESSION['quiz_index'] >= count($_SESSION['quiz_questions'])) {
+            $_SESSION['quiz_index'] = $nextIndex;
             header("Location: results.php");
             exit();
-        }
+        } else {
+            $_SESSION['quiz_index'] = $nextIndex;
 
-        $index = $_SESSION['quiz_index'];
-        $current = $_SESSION['quiz_questions'][$index];
+            // save normal progress
+            updateQuizAttempt($conn, $nextIndex, 'in_progress');
+
+            $_SESSION['quiz_answered'] = false;
+            $_SESSION['quiz_selected'] = '';
+            $_SESSION['quiz_feedback'] = '';
+            $_SESSION['quiz_speak'] = '';
+            $_SESSION['quiz_is_correct'] = false;
+
+            $index = $_SESSION['quiz_index'];
+            $current = $_SESSION['quiz_questions'][$index];
+        }
     }
 }
 
@@ -351,7 +400,6 @@ function getOptionClass($optionKey, $selected, $correct, $answered, $isCorrect) 
 
     <form method="post">
       <div class="quiz-options">
-
         <button class="<?php echo getOptionClass('A', $selected, $current['correct_option'], $answered, $isCorrect); ?>" type="submit" name="answer" value="A" <?php echo $answered ? 'disabled' : ''; ?>>
           <?php echo htmlspecialchars($current['option_a']); ?>
         </button>
@@ -367,7 +415,6 @@ function getOptionClass($optionKey, $selected, $correct, $answered, $isCorrect) 
         <button class="<?php echo getOptionClass('D', $selected, $current['correct_option'], $answered, $isCorrect); ?>" type="submit" name="answer" value="D" <?php echo $answered ? 'disabled' : ''; ?>>
           <?php echo htmlspecialchars($current['option_d']); ?>
         </button>
-
       </div>
 
       <?php if ($answered): ?>

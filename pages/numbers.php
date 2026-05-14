@@ -1,94 +1,155 @@
+<?php
+session_start();
+?>
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Numbers - WebCapstone</title>
+  <title>Numbers - Kids Learning Hub</title>
   <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
 
-<h1 class="page-title">Learn Numbers (1–20)</h1>
-<p class="page-subtitle">Click any number to see it bigger and hear the sound.</p>
+<header class="inner-topbar">
+  <div class="header-inner">
 
-<div class="grid">
-  <?php
-    for ($n = 1; $n <= 20; $n++) {
-      echo "
-        <div class='card' onclick=\"showItem('$n')\">
-          <img src='../assets/numbers/images/$n.png' alt='$n'>
-          <div class='label'>$n</div>
-        </div>
-      ";
-    }
-  ?>
-</div>
-
-<!-- POPUP -->
-<div id="popupOverlay" class="popup-overlay" onclick="closePopup()">
-  <div class="popup-box" onclick="event.stopPropagation()">
-    <img id="popupImg" src="" alt="Number">
-    <div id="popupText" class="popup-text"></div>
+    <div class="header-left">
+     <div class="site-brand">
+  <img src="../assets/logo.png" class="site-logo" alt="Logo">
+  
+  <div>
+    <div class="site-title">Kids Learning Hub</div>
+    <div class="site-tagline">Learn letters, numbers, colors, shapes and animals</div>
   </div>
 </div>
+    </div>
 
-<audio id="sound" preload="auto"></audio>
+    <div class="header-center">
+      <?php if (isset($_SESSION['user_id'])): ?>
+        <div class="user-greet">Hi, <?php echo htmlspecialchars($_SESSION['username']); ?></div>
+      <?php endif; ?>
+    </div>
 
-<p><a class="back-link" href="../index.php">← Back to Home</a></p>
+    <div class="header-right">
+
+      <div class="right-main">
+        <div class="topbar-links">
+          <a href="../index.php">Home</a>
+
+          <?php if (isset($_SESSION['user_id'])): ?>
+            <a href="../my_results.php">My Results</a>
+            <a href="../logout.php">Logout</a>
+          <?php else: ?>
+            <a href="../login.php">Login</a>
+            <a href="../register.php">Register</a>
+          <?php endif; ?>
+        </div>
+      </div>
+
+     <div class="social-icons">
+  <a href="#"><i class="fab fa-facebook-f"></i></a>
+  <a href="#"><i class="fab fa-instagram"></i></a>
+  <a href="#"><i class="fab fa-youtube"></i></a>
+</div>
+
+    </div>
+  </div>
+</header>
+
+<div class="page-panel">
+
+  <h1 class="page-title">Learn Numbers (1–20)</h1>
+  <p class="page-subtitle">Click any number to see it bigger and hear the sound.</p>
+
+  <div class="grid">
+    <?php
+      for ($n = 1; $n <= 20; $n++) {
+        echo "
+          <div class='card' onclick=\"showItem($n)\">
+            <img src='../assets/numbers/images/$n.png' alt='$n'>
+          </div>
+        ";
+      }
+    ?>
+  </div>
+
+  <div id="popupOverlay" class="popup-overlay" onclick="closePopup()">
+    <div class="popup-box" onclick="replaySound(); event.stopPropagation()">
+      <img id="popupImg" src="" alt="Number">
+
+      <div class="popup-nav">
+        <button id="prevBtn" type="button" onclick="showPrevious()">← Back</button>
+        <button id="nextBtn" type="button" onclick="showNext()">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="sound" preload="auto"></audio>
+
+  <div class="page-arrows">
+    <a class="arrow-btn" href="abc.php">← Back</a>
+    <a class="arrow-btn" href="colors.php">Next →</a>
+  </div>
+
+  <div class="center-home-link">
+    <a href="../index.php">Back to Home</a>
+  </div>
+
+</div>
 
 <script>
+const numbers = Array.from({ length: 20 }, (_, i) => i + 1);
+let currentIndex = 0;
+
 function showItem(num) {
-  const overlay = document.getElementById("popupOverlay");
-  const popupImg = document.getElementById("popupImg");
-  const popupText = document.getElementById("popupText");
-
-  popupImg.src = `../assets/numbers/images/${num}.png`;
-  popupText.textContent = num;
-  overlay.style.display = "flex";
-
-  const audioPath = `../assets/numbers/sounds/${num}.mp3`;
-
-  // play twice, then wait 2.5 seconds, then close
-  playSoundTwice(audioPath, 2500, closePopup);
+  currentIndex = numbers.indexOf(num);
+  updatePopup();
 }
 
-async function playSoundTwice(src, delayMs, onDone) {
-  try {
-    await playOnce(src);  // 1st time
-    await playOnce(src);  // 2nd time
+function updatePopup() {
+  const num = numbers[currentIndex];
 
-    setTimeout(() => {
-      if (onDone) onDone();
-    }, delayMs);
+  document.getElementById("popupImg").src = `../assets/numbers/images/${num}.png`;
+  document.getElementById("popupOverlay").style.display = "flex";
 
-  } catch (err) {
-    console.log("Audio issue:", src, err);
-    // if something fails, close after short delay
-    setTimeout(() => onDone && onDone(), 800);
+  document.getElementById("prevBtn").disabled = currentIndex === 0;
+  document.getElementById("nextBtn").disabled = currentIndex === numbers.length - 1;
+
+  playSound();
+}
+
+function playSound() {
+  const num = numbers[currentIndex];
+  const sound = document.getElementById("sound");
+
+  sound.pause();
+  sound.currentTime = 0;
+  sound.src = `../assets/numbers/sounds/${num}.mp3?v=` + Date.now();
+  sound.load();
+  sound.play().catch(() => {});
+}
+
+function replaySound() {
+  playSound();
+}
+
+function showPrevious() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    updatePopup();
   }
 }
 
-function playOnce(src) {
-  return new Promise((resolve, reject) => {
-    const sound = document.getElementById("sound");
-
-    sound.pause();
-    sound.currentTime = 0;
-    sound.onended = null;
-
-    // small cache buster so browser always loads correctly
-    sound.src = src + "?v=" + Date.now();
-    sound.load();
-
-    sound.onended = () => resolve();
-
-    sound.play().catch((err) => reject(err));
-  });
+function showNext() {
+  if (currentIndex < numbers.length - 1) {
+    currentIndex++;
+    updatePopup();
+  }
 }
 
 function closePopup() {
-  const overlay = document.getElementById("popupOverlay");
+  document.getElementById("popupOverlay").style.display = "none";
   const sound = document.getElementById("sound");
-
-  overlay.style.display = "none";
   sound.pause();
   sound.currentTime = 0;
 }
